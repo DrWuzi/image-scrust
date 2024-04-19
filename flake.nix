@@ -19,10 +19,15 @@
       {
         devShells.default = mkShell rec {
           buildInputs = [
-            (rust-bin.selectLatestNightlyWith( toolchain: toolchain.default.override {
-              extensions= [ "rust-src" "rust-analyzer" ];
-              targets = [];
-            }))
+            # (rust-bin.selectLatestNightlyWith( toolchain: toolchain.default.override {
+            #   extensions = [ "rust-src" "rust-analyzer" ];
+            #   targets = [];
+            # }))
+
+            (rust-bin.stable.latest.default.override {
+              extensions = [ "rust-src" "rust-analyzer" ];
+              targets = [  ];
+            })
 
             pkg-config
             openssl
@@ -31,6 +36,7 @@
           ];
 
           LD_LIBRARY_PATH = "${lib.makeLibraryPath buildInputs}";
+          LIBCLANG_PATH = "${pkgs.libclang.lib}/lib";
         };
       }
     );

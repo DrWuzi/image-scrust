@@ -9,6 +9,9 @@ pub enum Error {
     #[error("network error: {0}")]
     NetworkError(#[from] reqwest::Error),
 
+    #[error("impersonate network error: {0}")]
+    ImpersonateNetworkError(#[from] reqwest_impersonate::Error),
+
     #[error("failed to parse url: {0}")]
     UrlParseError(#[from] url::ParseError),
 

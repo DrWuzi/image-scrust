@@ -9,6 +9,7 @@ edition = "2021"
 bytes = "1.6.0"
 derive_builder = "0.20.0"
 reqwest = { version = "0.12.3", features = ["blocking"] }
+reqwest-impersonate = { version = "0.11.69", features = ["blocking"] }
 select = "0.6.0"
 thiserror = "1.0.58"
 url = "2.5.0"
