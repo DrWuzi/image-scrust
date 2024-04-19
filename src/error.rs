@@ -11,6 +11,9 @@ pub enum Error {
 
     #[error("failed to parse url: {0}")]
     UrlParseError(#[from] url::ParseError),
+
+    #[error("io error: {0}")]
+    IOError(#[from] std::io::Error),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

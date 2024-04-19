@@ -1,3 +1,4 @@
+use bytes::Bytes;
 use select::{document::Document, predicate::{Class, Name}};
 use url::Url;
 
@@ -6,19 +7,31 @@ use crate::error::{Error, Result};
 use derive_builder::Builder;
 
 #[derive(Debug, Clone)]
-pub struct ImageCollection {
+pub struct ImageUrlCollection {
     pub name: String,
     pub image_urls: Vec<Url>,
 }
 
-impl ImageCollection {
+#[derive(Debug, Clone)]
+pub struct ImageBytesCollection {
+    pub name: String,
+    pub images: Vec<Bytes>,
+}
+
+impl ImageUrlCollection {
     pub fn new(name: String, image_urls: Vec<Url>) -> Self {
         Self { name, image_urls }
     }
 }
 
+impl ImageBytesCollection {
+    pub fn new(name: String, images: Vec<Bytes>) -> Self {
+        Self { name, images }
+    }
+}
+
 pub trait ImageScraper {
-    fn scrape(&self) -> Result<ImageCollection>;
+    fn scrape(&self) -> Result<ImageUrlCollection>;
 }
 
 #[derive(Builder, Clone)]
@@ -30,7 +43,7 @@ pub struct WebsiteAScraper {
 }
 
 impl ImageScraper for WebsiteAScraper {
-    fn scrape(&self) -> Result<ImageCollection> {
+    fn scrape(&self) -> Result<ImageUrlCollection> {
         let collection_name = match &self.collection_name {
             Some(name) => name.clone(),
             None => {
@@ -78,6 +91,6 @@ impl ImageScraper for WebsiteAScraper {
             image_urls.append(&mut img_links);
         }
                 
-        Ok(ImageCollection::new(collection_name, image_urls))
+        Ok(ImageUrlCollection::new(collection_name, image_urls))
     }
 }
