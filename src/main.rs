@@ -8,7 +8,7 @@ use reqwest::header::{HeaderMap, ACCEPT, CACHE_CONTROL, HOST};
 use scraper::{ImageCollection, ImageCollectionBuilder, ScrapedData};
 use url::Url;
 
-use crate::scraper::{nude_bird::NudeBirdScraperBuilder, hot_girl::HotGirlScraperBuilder, ImageScraper};
+use crate::scraper::{nude_bird::NudeBirdScraperBuilder, hot_girl::HotGirlScraperBuilder, cosplay_tele::CosplayTeleScraperBuilder, ImageScraper};
 
 mod error;
 mod scraper;
@@ -24,6 +24,7 @@ async fn main() -> Result<()> {
     let scraper: Box<dyn ImageScraper> = match url.domain().unwrap() {
         "nudebird.biz" => Box::new(NudeBirdScraperBuilder::default().url(url).build()?),
         "hotgirl.asia" => Box::new(HotGirlScraperBuilder::default().url(url).build()?),
+        "cosplaytele.com" => Box::new(CosplayTeleScraperBuilder::default().url(url).build()?),
         _ => panic!("unsuported url")
     };
 
@@ -64,7 +65,7 @@ pub async fn download_images(image_collection: ImageCollection<Url>) -> Result<I
         .domain(image_collection.domain)
         .images(scraped_data)
         .build()?;
-        
+
     Ok(new_collection)
 }
 

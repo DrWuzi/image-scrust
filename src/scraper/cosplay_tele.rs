@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use derive_builder::Builder;
-use select::{document::Document, predicate::{Class, Name}};
+use select::{document::Document, predicate::{Class}};
 use url::Url;
 
 use crate::error::{Error, Result};
@@ -8,8 +8,8 @@ use crate::error::{Error, Result};
 use super::{ImageCollection, ImageScraper, ImageCollectionBuilder};
 
 #[derive(Builder, Clone)]
-#[builder(build_fn(error = "Error"))]
-pub struct HotGirlScraper {
+#[builder(public, build_fn(error = "Error"))]
+pub struct CosplayTeleScraper {
     pub url: Url,
     #[builder(default = "None")]
     pub domain_name: Option<String>,
@@ -18,7 +18,7 @@ pub struct HotGirlScraper {
 }
 
 #[async_trait]
-impl ImageScraper for HotGirlScraper {
+impl ImageScraper for CosplayTeleScraper {
     async fn scrape(&self) -> Result<ImageCollection<Url>> {
         let collection_name = match &self.collection_name {
             Some(name) => name.clone(),
@@ -39,39 +39,14 @@ impl ImageScraper for HotGirlScraper {
 
         let response = reqwest::get(self.url.clone()).await?;
         let html = response.text().await?;
-        let pagination_selector = "pagination";
         let mut image_urls: Vec<Url> = Vec::new();
-        let mut page_urls: Vec<Url>= Vec::new();
 
-        page_urls.push(self.url.clone());
-
+        let selector = "attachment-full";
         let document = Document::from(html.as_str());
-        for container in document.find(Class(pagination_selector)) {
-            for node in container.find(Name("li")) {
-                for a in node.find(Name("a")) {
-                    if let Some(link) = a.attr("href") {
-                        page_urls.push(Url::parse(link)?);
-                    }
-                }
+        for container in document.find(Class(selector)) {
+            if let Some(link) = container.attr("src") {
+                image_urls.push(Url::parse(link)?);
             }
-        }
-
-        let selector = "galeria_img";
-
-        for page_link in page_urls {
-            let response = reqwest::blocking::get(page_link)?;
-            let html = response.text()?;
-            let mut img_links: Vec<Url> = Vec::new();
-            let document = Document::from(html.as_str());
-            for container in document.find(Class(selector)) {
-                for node in container.find(Name("img")) {
-                    if let Some(link) = node.attr("src") {
-                        img_links.push(Url::parse(link)?);
-                    }
-                }
-            }
-
-            image_urls.append(&mut img_links);
         }
 
         let image_collection = ImageCollectionBuilder::default()

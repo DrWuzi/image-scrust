@@ -1,5 +1,6 @@
 pub mod hot_girl;
 pub mod nude_bird;
+pub mod cosplay_tele;
 
 use async_trait::async_trait;
 use bytes::Bytes;
