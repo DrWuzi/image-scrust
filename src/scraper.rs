@@ -4,36 +4,31 @@ pub mod nude_bird;
 use async_trait::async_trait;
 use bytes::Bytes;
 use url::Url;
+use derive_builder::Builder;
 
-use crate::error::Result;
+use crate::error::{Result, Error};
 
-#[derive(Debug, Clone)]
-pub struct ImageUrlCollection {
+#[derive(Debug, Clone, Builder)]
+#[builder(build_fn(error = "Error"))]
+pub struct ImageCollection<T> {
     pub name: String,
     pub domain: String,
-    pub image_urls: Vec<Url>,
+    pub images: Vec<T>,
 }
 
-#[derive(Debug, Clone)]
-pub struct ImageBytesCollection {
-    pub name: String,
-    pub domain: String,
-    pub images: Vec<Bytes>,
+#[derive(Debug, Clone, Builder)]
+pub struct ScrapedData {
+    pub file_type: String,
+    pub data: Bytes,
 }
 
-impl ImageUrlCollection {
-    pub fn new(name: String, domain: String, image_urls: Vec<Url>) -> Self {
-        Self { name, domain, image_urls }
-    }
-}
-
-impl ImageBytesCollection {
-    pub fn new(name: String, domain: String, images: Vec<Bytes>) -> Self {
-        Self { name, domain, images }
+impl ScrapedData {
+    pub fn new(file_type: String, data: Bytes) -> Self {
+        Self { file_type, data }
     }
 }
 
 #[async_trait]
 pub trait ImageScraper {
-    async fn scrape(&self) -> Result<ImageUrlCollection>;
+    async fn scrape(&self) -> Result<ImageCollection<Url>>;
 }

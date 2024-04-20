@@ -5,7 +5,7 @@ use std::{fs, hash::{DefaultHasher, Hash, Hasher}, io::{stdin, stdout, Write}};
 use error::Result;
 use indicatif::ProgressBar;
 use reqwest::header::{HeaderMap, ACCEPT, CACHE_CONTROL, HOST};
-use scraper::{ImageBytesCollection, ImageUrlCollection};
+use scraper::{ImageCollection, ImageCollectionBuilder, ScrapedData};
 use url::Url;
 
 use crate::scraper::{nude_bird::NudeBirdScraperBuilder, hot_girl::HotGirlScraperBuilder, ImageScraper};
@@ -37,8 +37,8 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
-pub async fn download_images(image_collection: ImageUrlCollection) -> Result<ImageBytesCollection> {
-    let mut images = Vec::new();
+pub async fn download_images(image_collection: ImageCollection<Url>) -> Result<ImageCollection<ScrapedData>> {
+    let mut scraped_data = Vec::new();
     let mut headers = HeaderMap::new();
     headers.insert(HOST, image_collection.domain.parse().unwrap());
     headers.insert(ACCEPT, "*/*".parse().unwrap());
@@ -49,26 +49,36 @@ pub async fn download_images(image_collection: ImageUrlCollection) -> Result<Ima
             .default_headers(headers)
             .build()?;
 
-    let pb = ProgressBar::new(image_collection.image_urls.len() as u64);
-    for url in image_collection.image_urls {
+    let pb = ProgressBar::new(image_collection.images.len() as u64);
+    for url in image_collection.images {
+        let file_type: String = url.to_string().rsplit(".").collect::<Vec<&str>>().get(0).unwrap_or(&"idk").to_string();
         let res = client.get(url).send().await?;
         let data = res.bytes().await?;
-        images.push(data);
+        scraped_data.push(ScrapedData::new(file_type, data));
         pb.inc(1);
     }
     pb.finish_with_message("completed");
 
-    Ok(ImageBytesCollection::new(image_collection.name, image_collection.domain, images))
+    let new_collection = ImageCollectionBuilder::default()
+        .name(image_collection.name)
+        .domain(image_collection.domain)
+        .images(scraped_data)
+        .build()?;
+        
+    Ok(new_collection)
 }
 
-pub fn save_images(image_collection: ImageBytesCollection) -> Result<()> {
+pub fn save_images(image_collection: ImageCollection<ScrapedData>) -> Result<()> {
     let dir_path = format!("output/{}/{}", image_collection.domain, image_collection.name);
     fs::create_dir_all(&dir_path)?;
 
-    for image in image_collection.images {
-        let filepath = format!("{}/{}.jpg", &dir_path, calculate_hash(&image));
-        fs::write(filepath, image)?;
+    let pb = ProgressBar::new(image_collection.images.len() as u64);
+    for scraped_data in image_collection.images {
+        let filepath = format!("{}/{}.{}", &dir_path, calculate_hash(&scraped_data.data), scraped_data.file_type);
+        fs::write(filepath, scraped_data.data)?;
+        pb.inc(1);
     }
+    pb.finish_with_message("completed");
 
     Ok(())
 }

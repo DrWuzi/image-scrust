@@ -5,7 +5,7 @@ use url::Url;
 
 use crate::error::{Error, Result};
 
-use super::{ImageScraper, ImageUrlCollection};
+use super::{ImageCollection, ImageCollectionBuilder, ImageScraper};
 
 #[derive(Builder, Clone)]
 #[builder(public, build_fn(error = "Error"))]
@@ -19,7 +19,7 @@ pub struct NudeBirdScraper {
 
 #[async_trait]
 impl ImageScraper for NudeBirdScraper {
-    async fn scrape(&self) -> Result<ImageUrlCollection> {
+    async fn scrape(&self) -> Result<ImageCollection<Url>> {
         let collection_name = match &self.collection_name {
             Some(name) => name.clone(),
             None => {
@@ -53,6 +53,12 @@ impl ImageScraper for NudeBirdScraper {
             }
         }
 
-        Ok(ImageUrlCollection::new(collection_name, domain_name, image_urls))
+        let image_collection = ImageCollectionBuilder::default()
+            .name(collection_name)
+            .domain(domain_name)
+            .images(image_urls)
+            .build()?;
+        
+        Ok(image_collection)
     }
 }
