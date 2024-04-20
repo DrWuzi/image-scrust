@@ -1,3 +1,4 @@
+use async_trait::async_trait;
 use derive_builder::Builder;
 use select::{document::Document, predicate::{Class, Name}};
 use url::Url;
@@ -16,8 +17,9 @@ pub struct HotGirlScraper {
     pub collection_name: Option<String>,
 }
 
+#[async_trait]
 impl ImageScraper for HotGirlScraper {
-    fn scrape(&self) -> Result<ImageUrlCollection> {
+    async fn scrape(&self) -> Result<ImageUrlCollection> {
         let collection_name = match &self.collection_name {
             Some(name) => name.clone(),
             None => {
@@ -35,8 +37,8 @@ impl ImageScraper for HotGirlScraper {
             None => self.url.domain().unwrap_or("unknown").to_string(),
         };
 
-        let response = reqwest::blocking::get(self.url.clone())?;
-        let html = response.text()?;
+        let response = reqwest::get(self.url.clone()).await?;
+        let html = response.text().await?;
         let pagination_selector = "pagination";
         let mut image_urls: Vec<Url> = Vec::new();
         let mut page_urls: Vec<Url>= Vec::new();
@@ -68,10 +70,10 @@ impl ImageScraper for HotGirlScraper {
                     }
                 }
             }
-            
+
             image_urls.append(&mut img_links);
         }
-                
+
         Ok(ImageUrlCollection::new(collection_name, domain_name, image_urls))
     }
 }

@@ -1,3 +1,4 @@
+use async_trait::async_trait;
 use derive_builder::Builder;
 use select::{document::Document, predicate::{Class, Name}};
 use url::Url;
@@ -16,8 +17,9 @@ pub struct NudeBirdScraper {
     pub collection_name: Option<String>,
 }
 
+#[async_trait]
 impl ImageScraper for NudeBirdScraper {
-    fn scrape(&self) -> Result<ImageUrlCollection> {
+    async fn scrape(&self) -> Result<ImageUrlCollection> {
         let collection_name = match &self.collection_name {
             Some(name) => name.clone(),
             None => {
@@ -29,20 +31,20 @@ impl ImageScraper for NudeBirdScraper {
                 }).map_err(|_| Error::Generic("failed to decode url".to_string()))?.into_owned()
             },
         };
-        
+
         let domain_name = match &self.domain_name {
             Some(name) => name.clone(),
             None => self.url.domain().unwrap_or("unknown").to_string(),
         };
-        
-        let response = reqwest::blocking::get(self.url.clone())?;
-        let html = response.text()?;
+
+        let response = reqwest::get(self.url.clone()).await?;
+        let html = response.text().await?;
         let mut image_urls: Vec<Url> = Vec::new();
 
         let selector = "thecontent";
         let document = Document::from(html.as_str());
         for container in document.find(Class(selector)) {
-            for p_node in container.find(Name("p")) {          
+            for p_node in container.find(Name("p")) {
                 for a_node in p_node.find(Name("a")) {
                     if let Some(link) = a_node.attr("href") {
                         image_urls.push(Url::parse(link)?);
@@ -50,7 +52,7 @@ impl ImageScraper for NudeBirdScraper {
                 }
             }
         }
-                
+
         Ok(ImageUrlCollection::new(collection_name, domain_name, image_urls))
     }
 }

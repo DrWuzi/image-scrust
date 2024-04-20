@@ -1,6 +1,7 @@
 pub mod hot_girl;
 pub mod nude_bird;
 
+use async_trait::async_trait;
 use bytes::Bytes;
 use url::Url;
 
@@ -32,6 +33,7 @@ impl ImageBytesCollection {
     }
 }
 
+#[async_trait]
 pub trait ImageScraper {
-    fn scrape(&self) -> Result<ImageUrlCollection>;
+    async fn scrape(&self) -> Result<ImageUrlCollection>;
 }
