@@ -1,23 +1,29 @@
 #![allow(dead_code, unused_variables)]
 
-use std::{fs, hash::{DefaultHasher, Hash, Hasher}};
+use std::{fs, hash::{DefaultHasher, Hash, Hasher}, io::{stdin, stdout, Write}};
 
 use error::Result;
+use reqwest::header::{HeaderMap, ACCEPT, CACHE_CONTROL, HOST};
 use scraper::{ImageBytesCollection, ImageUrlCollection};
 use url::Url;
-use reqwest_impersonate as reqwest;
-use reqwest::impersonate::Impersonate;
 
-use crate::scraper::{nude_bird::NudeBirdScraperBuilder, ImageScraper};
+use crate::scraper::{nude_bird::NudeBirdScraperBuilder, hot_girl::HotGirlScraperBuilder, ImageScraper};
 
 mod error;
 mod scraper;
 
 fn main() -> Result<()> {
-    let url = Url::parse("https://nudebird.biz/cosplay-ninja-azhaizhai-atonement-nun/")?;
-    let scraper: Box<dyn ImageScraper> = Box::new(NudeBirdScraperBuilder::default()
-        .url(url)
-        .build()?);
+    let mut input = String::new();
+    print!("Please enter the image url: ");
+    let _ = stdout().flush();
+    stdin().read_line(&mut input).expect("failed reading input");
+    
+    let url = Url::parse(&input)?;
+    let scraper: Box<dyn ImageScraper> = match url.domain().unwrap() {
+        "nudebird.biz" => Box::new(NudeBirdScraperBuilder::default().url(url).build()?),
+        "hotgirl.asia" => Box::new(HotGirlScraperBuilder::default().url(url).build()?),
+        _ => panic!("unsuported url")
+    };
 
     println!("Scraping image urls...");
     let urls = scraper.scrape()?;
@@ -31,15 +37,20 @@ fn main() -> Result<()> {
 
 pub fn download_images(image_collection: ImageUrlCollection) -> Result<ImageBytesCollection> {
     let mut images = Vec::new();
+    let mut headers = HeaderMap::new();
+    headers.insert(HOST, image_collection.domain.parse().unwrap());
+    headers.insert(ACCEPT, "*/*".parse().unwrap());
+    headers.insert(CACHE_CONTROL, "no-cache".parse().unwrap());
     let client = reqwest::blocking::Client::builder()
-        .impersonate(Impersonate::Chrome120)
-        .danger_accept_invalid_certs(true)
-        .enable_ech_grease(true)
-        .permute_extensions(true)
-        .build()?;
+            .use_rustls_tls()
+            .user_agent("Mozilla/5.0 (X11; Linux x86_64; rv:124.0) Gecko/20100101 Firefox/124.0")
+            .default_headers(headers)
+            .build()?;
     
     for url in image_collection.image_urls {
-        images.push(client.get(url).send()?.bytes()?);
+        let res = client.get(url).send()?;
+        let data = res.bytes()?;
+        images.push(data);
     }
     
     Ok(ImageBytesCollection::new(image_collection.name, image_collection.domain, images))

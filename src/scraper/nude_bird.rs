@@ -1,5 +1,4 @@
 use derive_builder::Builder;
-use reqwest_impersonate as reqwest;
 use select::{document::Document, predicate::{Class, Name}};
 use url::Url;
 
