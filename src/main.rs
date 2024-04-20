@@ -3,6 +3,7 @@
 use std::{fs, hash::{DefaultHasher, Hash, Hasher}, io::{stdin, stdout, Write}};
 
 use error::Result;
+use indicatif::ProgressBar;
 use reqwest::header::{HeaderMap, ACCEPT, CACHE_CONTROL, HOST};
 use scraper::{ImageBytesCollection, ImageUrlCollection};
 use url::Url;
@@ -48,11 +49,14 @@ pub async fn download_images(image_collection: ImageUrlCollection) -> Result<Ima
             .default_headers(headers)
             .build()?;
 
+    let pb = ProgressBar::new(image_collection.image_urls.len() as u64);
     for url in image_collection.image_urls {
         let res = client.get(url).send().await?;
         let data = res.bytes().await?;
         images.push(data);
+        pb.inc(1);
     }
+    pb.finish_with_message("completed");
 
     Ok(ImageBytesCollection::new(image_collection.name, image_collection.domain, images))
 }
