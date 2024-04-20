@@ -59,8 +59,8 @@ impl ImageScraper for HotGirlScraper {
         let selector = "galeria_img";
 
         for page_link in page_urls {
-            let response = reqwest::blocking::get(page_link)?;
-            let html = response.text()?;
+            let response = reqwest::get(page_link).await?;
+            let html = response.text().await?;
             let mut img_links: Vec<Url> = Vec::new();
             let document = Document::from(html.as_str());
             for container in document.find(Class(selector)) {
